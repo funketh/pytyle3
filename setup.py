@@ -17,11 +17,11 @@ setup(
     version='3.0.0',
     license='WTFPL',
     description='A new and much more lightweight pytyle that supports Openbox Multihead',
-    long_description='See README',
+    long_description='See README.md',
     url='https://github.com/BurntSushi/pytyle3',
     platforms='POSIX',
     packages=['pt3', 'pt3/layouts'],
-    data_files=[('share/doc/pytyle3', ['README', 'COPYING', 'INSTALL']),
+    data_files=[('share/doc/pytyle3', ['README.md', 'COPYING', 'INSTALL']),
                 ('/etc/xdg/pytyle3',
                  ['config.py', 'keybind.py'])],
     scripts=['pytyle3']

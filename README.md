@@ -1,3 +1,5 @@
+(This is a fork of https://github.com/BurntSushi/pytyle3 which tries to port pytyle3 to Python 3)
+
 An updated (and much faster) version of pytyle that uses xpybutil and is
 compatible with Openbox Multihead.
 
