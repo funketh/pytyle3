@@ -1,7 +1,5 @@
 import time
 
-import xcb.xproto
-
 import xpybutil
 import xpybutil.event as event
 import xpybutil.ewmh as ewmh
@@ -10,15 +8,15 @@ import xpybutil.icccm as icccm
 import xpybutil.rect as rect
 import xpybutil.util as util
 import xpybutil.window as window
+from xpybutil.compat import xproto
 
-from debug import debug
-
-import config
-import state
-import tile
+from pt3 import config
+from pt3 import state, tile
+from pt3.debug import debug
 
 clients = {}
-ignore = [] # Some clients are never gunna make it...
+ignore = []  # Some clients are never gunna make it...
+
 
 class Client(object):
     def __init__(self, wid):
@@ -36,7 +34,7 @@ class Client(object):
         # We get all resize AND move events... might be too much
         self.parentid = window.get_parent_window(self.wid)
         window.listen(self.parentid, 'StructureNotify')
-        event.connect('ConfigureNotify', self.parentid, 
+        event.connect('ConfigureNotify', self.parentid,
                       self.cb_configure_notify)
 
         # A window should only be floating if that is default
@@ -77,9 +75,9 @@ class Client(object):
     def restore(self):
         debug('Restoring %s' % self)
         if getattr(config, 'remove_decorations', False):
-            motif.set_hints_checked(self.wid,2,decoration=1).check()
+            motif.set_hints_checked(self.wid, 2, decoration=1).check()
         if getattr(config, 'tiles_below', False):
-            ewmh.request_wm_state_checked(self.wid,0,util.get_atom('_NET_WM_STATE_BELOW')).check()
+            ewmh.request_wm_state_checked(self.wid, 0, util.get_atom('_NET_WM_STATE_BELOW')).check()
         if self.saved_state:
             fullymaxed = False
             vatom = util.get_atom('_NET_WM_STATE_MAXIMIZED_VERT')
@@ -96,7 +94,7 @@ class Client(object):
             # No need to continue if we've fully maximized the window
             if fullymaxed:
                 return
-            
+
         mnow = rect.get_monitor_area(window.get_geometry(self.wid),
                                      state.monitors)
         mold = rect.get_monitor_area(self.saved_geom, state.monitors)
@@ -122,7 +120,7 @@ class Client(object):
     def moveresize(self, x=None, y=None, w=None, h=None):
         # Ignore this if the user is moving the window...
         if self.moving:
-            print 'Sorry but %s is moving...' % self
+            print('Sorry but %s is moving...' % self)
             return
 
         try:
@@ -136,22 +134,22 @@ class Client(object):
             if pointer is None:
                 return False
 
-            if (xcb.xproto.KeyButMask.Button1 & pointer.mask or
-                xcb.xproto.KeyButMask.Button3 & pointer.mask):
+            if (xproto.KeyButMask.Button1 & pointer.mask or
+                    xproto.KeyButMask.Button3 & pointer.mask):
                 return True
-        except xcb.xproto.BadWindow:
+        except xproto.BadWindow:
             pass
 
         return False
 
     def cb_focus_in(self, e):
-        if self.moving and e.mode == xcb.xproto.NotifyMode.Ungrab:
+        if self.moving and e.mode == xproto.NotifyMode.Ungrab:
             state.GRAB = None
             self.moving = False
             tile.update_client_moved(self)
 
     def cb_focus_out(self, e):
-        if e.mode == xcb.xproto.NotifyMode.Grab:
+        if e.mode == xproto.NotifyMode.Grab:
             state.GRAB = self
 
     def cb_configure_notify(self, e):
@@ -159,30 +157,31 @@ class Client(object):
             self.moving = True
 
     def cb_property_notify(self, e):
-        aname = util.get_atom_name(e.atom)
+        atom_name = util.get_atom_name(e.atom)
 
         try:
-            if aname == '_NET_WM_DESKTOP':
+            if atom_name == '_NET_WM_DESKTOP':
                 if should_ignore(self.wid):
                     untrack_client(self.wid)
                     return
 
-                olddesk = self.desk
+                old_desk = self.desk
                 self.desk = ewmh.get_wm_desktop(self.wid).reply()
 
-                if self.desk is not None and self.desk != olddesk:
-                    tile.update_client_desktop(self, olddesk)
+                if self.desk is not None and self.desk != old_desk:
+                    tile.update_client_desktop(self, old_desk)
                 else:
-                    self.desk = olddesk
-            elif aname == '_NET_WM_STATE':
+                    self.desk = old_desk
+            elif atom_name == '_NET_WM_STATE':
                 if should_ignore(self.wid):
                     untrack_client(self.wid)
                     return
-        except xcb.xproto.BadWindow:
-            pass # S'ok...
+        except xproto.BadWindow:
+            pass  # S'ok...
 
     def __str__(self):
         return '{%s (%d)}' % (self.name[0:30], self.wid)
+
 
 def update_clients():
     client_list = ewmh.get_client_list_stacking().reply()
@@ -190,9 +189,10 @@ def update_clients():
     for c in client_list:
         if c not in clients:
             track_client(c)
-    for c in clients.keys():
+    for c in list(clients.keys()):
         if c not in client_list:
             untrack_client(c)
+
 
 def track_client(client):
     assert client not in clients
@@ -206,10 +206,11 @@ def track_client(client):
                 time.sleep(0.2)
 
             clients[client] = Client(client)
-    except xcb.xproto.BadWindow:
+    except xproto.BadWindow:
         debug('Window %s was destroyed before we could finish inspecting it. '
               'Untracking it...' % client)
         untrack_client(client)
+
 
 def untrack_client(client):
     if client not in clients:
@@ -218,6 +219,7 @@ def untrack_client(client):
     c = clients[client]
     del clients[client]
     c.remove()
+
 
 def should_ignore(client):
     # Don't waste time on clients we'll never possibly tile
@@ -230,17 +232,17 @@ def should_ignore(client):
     if wm_class is not None:
         try:
             inst, cls = wm_class
-            matchNames = set([inst.lower(), cls.lower()])
+            match_names = {inst.lower(), cls.lower()}
 
-            if matchNames.intersection(config.ignore):
+            if match_names.intersection(config.ignore):
                 debug('Ignoring %s because it is in the ignore list' % nm)
                 return True
 
             if hasattr(config, 'tile_only') and config.tile_only:
-              if not matchNames.intersection(config.tile_only):
-                debug('Ignoring %s because it is not in the tile_only '
-                      'list' % nm)
-                return True
+                if not match_names.intersection(config.tile_only):
+                    debug('Ignoring %s because it is not in the tile_only '
+                          'list' % nm)
+                    return True
         except ValueError:
             pass
 
@@ -249,58 +251,57 @@ def should_ignore(client):
         ignore.append(client)
         return True
 
-    wtype = ewmh.get_wm_window_type(client).reply()
-    if wtype:
-        for atom in wtype:
-            aname = util.get_atom_name(atom)
+    window_type = ewmh.get_wm_window_type(client).reply()
+    if window_type:
+        for atom in window_type:
+            atom_name = util.get_atom_name(atom)
 
-            if aname in ('_NET_WM_WINDOW_TYPE_DESKTOP',
-                         '_NET_WM_WINDOW_TYPE_DOCK',
-                         '_NET_WM_WINDOW_TYPE_TOOLBAR',
-                         '_NET_WM_WINDOW_TYPE_MENU',
-                         '_NET_WM_WINDOW_TYPE_UTILITY',
-                         '_NET_WM_WINDOW_TYPE_SPLASH',
-                         '_NET_WM_WINDOW_TYPE_DIALOG',
-                         '_NET_WM_WINDOW_TYPE_DROPDOWN_MENU',
-                         '_NET_WM_WINDOW_TYPE_POPUP_MENU',
-                         '_NET_WM_WINDOW_TYPE_TOOLTIP',
-                         '_NET_WM_WINDOW_TYPE_NOTIFICATION',
-                         '_NET_WM_WINDOW_TYPE_COMBO', 
-                         '_NET_WM_WINDOW_TYPE_DND'):
-                debug('Ignoring %s because it has type %s' % (nm, aname))
+            if atom_name in ('_NET_WM_WINDOW_TYPE_DESKTOP',
+                             '_NET_WM_WINDOW_TYPE_DOCK',
+                             '_NET_WM_WINDOW_TYPE_TOOLBAR',
+                             '_NET_WM_WINDOW_TYPE_MENU',
+                             '_NET_WM_WINDOW_TYPE_UTILITY',
+                             '_NET_WM_WINDOW_TYPE_SPLASH',
+                             '_NET_WM_WINDOW_TYPE_DIALOG',
+                             '_NET_WM_WINDOW_TYPE_DROPDOWN_MENU',
+                             '_NET_WM_WINDOW_TYPE_POPUP_MENU',
+                             '_NET_WM_WINDOW_TYPE_TOOLTIP',
+                             '_NET_WM_WINDOW_TYPE_NOTIFICATION',
+                             '_NET_WM_WINDOW_TYPE_COMBO',
+                             '_NET_WM_WINDOW_TYPE_DND'):
+                debug('Ignoring %s because it has type %s' % (nm, atom_name))
                 ignore.append(client)
                 return True
 
-    wstate = ewmh.get_wm_state(client).reply()
-    if wstate is None:
+    window_state = ewmh.get_wm_state(client).reply()
+    if window_state is None:
         debug('Ignoring %s because it does not have a state' % nm)
         return True
 
-    for atom in wstate:
-        aname = util.get_atom_name(atom)
+    for atom in window_state:
+        atom_name = util.get_atom_name(atom)
 
         # For now, while I decide how to handle these guys
-        if aname == '_NET_WM_STATE_STICKY':
+        if atom_name == '_NET_WM_STATE_STICKY':
             debug('Ignoring %s because it is sticky and they are weird' % nm)
             return True
-        if aname in ('_NET_WM_STATE_SHADED', '_NET_WM_STATE_HIDDEN',
-                     '_NET_WM_STATE_FULLSCREEN', '_NET_WM_STATE_MODAL'):
-            debug('Ignoring %s because it has state %s' % (nm, aname))
+        if atom_name in ('_NET_WM_STATE_SHADED', '_NET_WM_STATE_HIDDEN',
+                         '_NET_WM_STATE_FULLSCREEN', '_NET_WM_STATE_MODAL'):
+            debug('Ignoring %s because it has state %s' % (nm, atom_name))
             return True
 
     d = ewmh.get_wm_desktop(client).reply()
     if d == 0xffffffff:
-        debug('Ignoring %s because it\'s on all desktops' \
+        debug('Ignoring %s because it\'s on all desktops'
               '(not implemented)' % nm)
         return True
 
     return False
 
-def cb_property_notify(e):
-    aname = util.get_atom_name(e.atom)
 
-    if aname == '_NET_CLIENT_LIST_STACKING':
+def cb_property_notify(e):
+    if util.get_atom_name(e.atom) == '_NET_CLIENT_LIST_STACKING':
         update_clients()
 
-event.connect('PropertyNotify', xpybutil.root, cb_property_notify)
 
+event.connect('PropertyNotify', xpybutil.root, cb_property_notify)

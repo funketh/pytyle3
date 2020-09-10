@@ -1,61 +1,68 @@
-import abc
+from abc import abstractmethod, ABCMeta
 
 import pt3.state as state
 
-class Layout(object):
-    __metaclass__ = abc.ABCMeta
 
-    @abc.abstractmethod
+class Layout(metaclass=ABCMeta):
+    @abstractmethod
     def __init__(self, desk):
-        self.desk = desk # Should never change
+        self.desk = desk  # Should never change
         self.active = False
         self.tiling = False
 
-    @abc.abstractmethod
-    def add(self, c): pass
+    @abstractmethod
+    def add(self, c):
+        pass
 
-    @abc.abstractmethod
-    def remove(self, c): pass
+    @abstractmethod
+    def remove(self, c):
+        pass
 
-    @abc.abstractmethod
+    @abstractmethod
     def tile(self, save=True):
-        if not self.active or self.desk not in state.visibles:
+        if not self.active or self.desk not in state.visible_desktops:
             return False
 
         if not self.tiling and save:
             for c in self.clients():
                 c.save()
-#                c.unmaximize()
+        #                c.unmaximize()
 
-        for c in self.clients(): #unmaximize all windows while tiling
+        for c in self.clients():  # unmaximize all windows while tiling
             c.unmaximize()
         self.tiling = True
 
         return True
 
-    @abc.abstractmethod
-    def untile(self): pass
+    @abstractmethod
+    def untile(self):
+        pass
 
-    @abc.abstractmethod
-    def next_client(self): pass
+    @abstractmethod
+    def next_client(self):
+        pass
 
-    @abc.abstractmethod
-    def switch_next_client(self): pass
+    @abstractmethod
+    def switch_next_client(self):
+        pass
 
-    @abc.abstractmethod
-    def prev_client(self): pass
+    @abstractmethod
+    def prev_client(self):
+        pass
 
-    @abc.abstractmethod
-    def switch_prev_client(self): pass
+    @abstractmethod
+    def switch_prev_client(self):
+        pass
 
-    @abc.abstractmethod
-    def clients(self): pass
+    @abstractmethod
+    def clients(self):
+        pass
 
     def get_workarea(self):
-        if self.desk not in state.visibles:
+        if self.desk not in state.visible_desktops:
             return None
 
-        mon = state.workarea[state.visibles.index(self.desk)]
+        mon = state.work_area[state.visible_desktops.index(self.desk)]
 
         return mon
 
@@ -70,9 +77,9 @@ class Layout(object):
         istiling = '- TILING' if self.tiling else ''
 
         return '%s (desk %d) %s%s' % (
-                    self.__class__.__name__, self.desk, wastr, istiling)
+            self.__class__.__name__, self.desk, wastr, istiling)
 
-from layout_vert_horz import VerticalLayout, HorizontalLayout
+
+from .layout_vert_horz import VerticalLayout, HorizontalLayout
 
 layouts = [VerticalLayout, HorizontalLayout]
-
