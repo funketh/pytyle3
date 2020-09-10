@@ -11,3 +11,17 @@ As a result, pytyle3 is ~1000 lines while pytyle2 is ~7000 lines. Additionally,
 because of a simpler design, pytyle3's memory footprint is much smaller and is 
 actually quite snappier in moving windows on the screen.
 
+# Installation
+It should be as straight-forward as
+
+```python
+sudo python3 setup.py install
+```
+
+Two configuration files, config.py and keybind.py will be copied to 
+/etc/xdg/pytyle3.
+
+To configure pytyle3 on a user basis, create ~/.config/pytyle3 and copy 
+/etc/xdg/pytyle3/*py to that directory.
+
+pytyle3 will require a restart if the configuration has changed.

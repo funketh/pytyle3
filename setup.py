@@ -12,17 +12,15 @@ except ImportError:
 
 setup(
     name='pytyle3',
-    author='Andrew Gallant',
-    author_email='andrew@pytyle.com',
-    version='3.0.0',
-    license='WTFPL',
+    author='Andrew Gallant <andrew@pytyle.com>, Theodor Kurt Funke <theodor.k.funke@gmail.com>',
+    version='4.0.0',
+    license='GPLv3+',
     description='A new and much more lightweight pytyle that supports Openbox Multihead',
     long_description='See README.md',
-    url='https://github.com/BurntSushi/pytyle3',
+    url='https://github.com/funketh/pytyle3',
     platforms='POSIX',
     packages=['pt3', 'pt3/layouts'],
-    data_files=[('share/doc/pytyle3', ['README.md', 'COPYING', 'INSTALL']),
-                ('/etc/xdg/pytyle3',
-                 ['config.py', 'keybind.py'])],
+    data_files=[('share/doc/pytyle3', ['README.md', 'LICENSE']),
+                ('/etc/xdg/pytyle3', ['config.py', 'keybind.py'])],
     scripts=['pytyle3']
 )
